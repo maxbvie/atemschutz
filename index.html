@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#b91c1c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>ASLA Silber Quiz</title>
+    <style>
+        :root {
+            --primary: #b91c1c; /* Feuerwehr Rot */
+            --primary-dark: #991b1b;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --correct: #16a34a;
+            --wrong: #dc2626;
+            --border: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        
+        body {
+            margin: 0; padding: 0; background-color: var(--bg); color: var(--text-main);
+            display: flex; flex-direction: column; min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        header {
+            background-color: var(--primary); color: white;
+            padding: 1rem; text-align: center; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: sticky; top: 0; z-index: 10;
+        }
+        
+        header h1 { margin: 0; font-size: 1.25rem; font-weight: 700; letter-spacing: 0.5px;}
+        header p { margin: 4px 0 0 0; font-size: 0.85rem; opacity: 0.9; }
+
+        main {
+            flex: 1; width: 100%; max-width: 600px; margin: 0 auto;
+            padding: 1.5rem 1rem; display: flex; flex-direction: column;
+        }
+
+        /* Utility Classes */
+        .hidden { display: none !important; }
+        .text-center { text-align: center; }
+        .mt-4 { margin-top: 1rem; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mb-4 { margin-bottom: 1rem; }
+
+        /* UI Elements */
+        .card {
+            background: var(--surface); border-radius: 12px;
+            padding: 1.5rem; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            border: 1px solid var(--border);
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            display: block; width: 100%; padding: 1rem;
+            border: 2px solid var(--border); border-radius: 12px;
+            background: var(--surface); color: var(--text-main);
+            font-size: 1rem; font-weight: 500; text-align: left;
+            cursor: pointer; transition: all 0.2s ease;
+            margin-bottom: 0.75rem;
+        }
+        
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { cursor: not-allowed; opacity: 0.8; }
+
+        .btn.primary { background: var(--primary); color: white; border-color: var(--primary); text-align: center; font-weight: bold; }
+        .btn.primary:active { background: var(--primary-dark); }
+        
+        .btn.secondary { background: #f1f5f9; text-align: center; border-color: #cbd5e1; }
+
+        .btn.correct { background: var(--correct); color: white; border-color: var(--correct); }
+        .btn.wrong { background: var(--wrong); color: white; border-color: var(--wrong); }
+
+        .action-row { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
+        .action-row .btn { margin-bottom: 0; text-align: center; }
+
+        /* Progress Bar */
+        .progress-container {
+            width: 100%; height: 8px; background: #e2e8f0;
+            border-radius: 4px; overflow: hidden; margin-bottom: 1.5rem;
+        }
+        .progress-fill {
+            height: 100%; background: var(--primary);
+            width: 0%; transition: width 0.3s ease;
+        }
+
+        .stats {
+            display: flex; justify-content: space-between;
+            font-size: 0.875rem; color: var(--text-muted); font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .q-tag {
+            display: inline-block; background: #fee2e2; color: var(--primary);
+            padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;
+            font-weight: 700; text-transform: uppercase; margin-bottom: 0.75rem;
+        }
+
+        h2.question-text { margin: 0 0 1.5rem 0; font-size: 1.2rem; line-height: 1.4; color: var(--text-main); }
+        
+        .answer-box {
+            background: #f0fdf4; border: 1px solid #bbf7d0;
+            padding: 1rem; border-radius: 8px; margin-top: 1rem;
+        }
+        .answer-box p { margin: 0; color: #166534; font-weight: 500; line-height: 1.5;}
+
+        /* Options for Home Screen */
+        .toggle-container {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 1rem; background: white; border-radius: 8px; border: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+        }
+        .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🚒 ASLA Silber</h1>
+        <p>Prüfungsfragen Training</p>
+    </header>
+
+    <main id="app">
+        <!-- Views will be injected here via JS -->
+    </main>
+
+    <script>
+        // --- 1. DATA: ALL 131 QUESTIONS ---
+        const questionsData = [
+            // --- STATION 4 (Offene Fragen) ---
+            { id: 'S4_1', cat: 'Station 4', type: 'open', q: 'Erkläre die erforderlichen Schritte bei der Prüfung des Pressluftatmers.', a: 'Sichtprüfung - Mitteldruck - Lungenautomat - Hochdruckdichtprüfung - Ansprechdruck der Restdruckwarnung - Eintrag im Karteiblatt' },
+            { id: 'S4_2', cat: 'Station 4', type: 'open', q: 'Welche Funktion haben die Steuerventile, das Ausatemventil und das Einatemventil?', a: '• Steuerventile: steuern den Luftstrom in der Maske.\n• Ausatemventil: dichtet die Maske ab und führt die Ausatemluft ins Freie.\n• Einatemventil: verhindert, dass Speichel in Richtung Lungenautomat fließt und hält die Sichtscheibe beschlagfrei.' },
+            { id: 'S4_3', cat: 'Station 4', type: 'open', q: 'Erkläre die erforderlichen Schritte bei der Prüfung von Atemschutzmasken.', a: 'Sichtprüfung - Dichtprüfung - Öffnungsdruck des Ausatemventils bei Überdruckmasken - Eintrag im Karteiblatt.' },
+            { id: 'S4_4', cat: 'Station 4', type: 'open', q: 'Erkläre sämtliche Schritte für die Reinigung und Desinfektion der Atemschutzmasken.', a: 'Zerlegen - reinigen - klarspülen - desinfizieren - klarspülen - trocknen - zusammenbauen.' },
+            { id: 'S4_5', cat: 'Station 4', type: 'open', q: 'Benenne und zeige sämtliche Einzelteile der Atemschutzmaske.', a: 'Maskenkörper - Dichtrahmen - Sichtscheibe - Anschlussstück - Sprechmembrane - Ausatemventil - Einatemventil - Innenmaske mit Steuerventilen - Bebänderung (Nackenbänder - Schläfenbänder - Stirnband) - Trageband.' },
+            { id: 'S4_6', cat: 'Station 4', type: 'open', q: 'Erkläre alle notwendigen Details betreffend der Atemluftflaschen.', a: 'Schwarz-weiße Farbkennzeichnung - Gefahrgutaufkleber - Lagerung mit Blindverschluss - Restdruck muss vorhanden sein - gültiger Prüfstempel/Prüfplakette.' },
+            { id: 'S4_7', cat: 'Station 4', type: 'open', q: 'Erkläre die Schritte bei der Prüfung des Lungenautomaten.', a: 'Sichtprüfung - Dichtprüfung - Schaltvorgang - statischer Überdruck - Eintrag im Karteiblatt.' },
+            { id: 'S4_8', cat: 'Station 4', type: 'open', q: 'Erkläre die Funktion des Lungenautomaten.', a: 'Statischer Überdruck. Durch das Einatmen wird die Membrane in Richtung Dosierhebel bewegt und der Luftstrom wird freigegeben.' },
+            { id: 'S4_9', cat: 'Station 4', type: 'open', q: 'Benenne und zeige die Einzelteile des Lungenautomaten.', a: 'Mitteldruckleitung - Gehäuse - Steckanschluss - Dosierhebel - Membrane - Deckel - Schutzkappe.' },
+            { id: 'S4_10', cat: 'Station 4', type: 'open', q: 'Erkläre die Funktion eines Bewegungslosmelders.', a: 'Durch die Entfernung des Funktionsschlüssels wird die automatische Bewegungsloswarnung aktiviert. Nach dem Voralarm (kann durch Bewegung quittiert werden) tritt der Hauptalarm ein. Hauptalarm kann auch manuell ausgelöst werden.' },
+            { id: 'S4_11', cat: 'Station 4', type: 'open', q: 'Benenne und zeige sämtliche Einzelteile des Pressluftatmers.', a: 'Trageplatte - Begurtung (Schulter- und Bauchgurt) - Druckminderer - Mitteldruckleitung mit Lungenautomat - Hochdruckleitung mit Druckanzeige - Restdruckwarnung - Flaschenspannband - Atemluftflasche(n).' },
+
+            // --- TEIL 1 (MC) ---
+            { id: 'T1_1', cat: 'Teil 1', type: 'mc', q: 'Ab welchem Alter ist das Tragen von Atemschutz im OÖ. Feuerwehrdienst rechtlich gestattet?', opts: ['a) 25 Jahre', 'b) 21 Jahre', 'c) 18 Jahre'], ans: 2 },
+            { id: 'T1_2', cat: 'Teil 1', type: 'mc', q: 'In welchen Abständen ist die AS-Tauglichkeitsuntersuchung mindestens zu wiederholen, wenn der AS-Träger nicht älter als 40 Jahre ist?', opts: ['a) alle 5 Jahre', 'b) alle 3 Jahre', 'c) alle 6 Jahre'], ans: 0 },
+            { id: 'T1_3', cat: 'Teil 1', type: 'mc', q: 'Wo ist die Absolvierung einer fundierten Ausbildung zum Atemschutzträger nachweisbar?', opts: ['a) im syBOS', 'b) im Tagebuch der Feuerwehr', 'c) im Kassenbuch'], ans: 0 },
+            { id: 'T1_4', cat: 'Teil 1', type: 'mc', q: 'Aus wie vielen Personen besteht normalerweise ein AS-Trupp?', opts: ['a) 3 Personen', 'b) 4 Personen', 'c) 5 Personen'], ans: 0 },
+            { id: 'T1_5', cat: 'Teil 1', type: 'mc', q: 'Wie sichert der AS-Trupp seinen Rückweg?', opts: ['a) es gibt keine Rückwegsicherung', 'b) durch Markieren von Punkten', 'c) mit Sicherungsleine od. Schlauch'], ans: 2 },
+            { id: 'T1_6', cat: 'Teil 1', type: 'mc', q: 'Wie viele Reserveatemschutztrupps müssen bei der AS-Sammelstelle in Bereitschaft stehen?', opts: ['a) mindestens zwei pro Einsatzabschnitt', 'b) mindestens einer pro Einsatzabschnitt', 'c) mindestens drei pro Einsatzabschnitt'], ans: 1 },
+            { id: 'T1_7', cat: 'Teil 1', type: 'mc', q: 'Wo wird der Funk im Atemschutz abgewickelt?', opts: ['a) Kanal 1', 'b) 70 cm, 2 m Band oder DMO', 'c) Notkanal'], ans: 1 },
+            { id: 'T1_8', cat: 'Teil 1', type: 'mc', q: 'Zu welcher Schutzstufe gehören gasdichte Vollschutzanzüge?', opts: ['a) Stufe 2', 'b) Stufe 3', 'c) Stufe 4'], ans: 1 },
+            { id: 'T1_9', cat: 'Teil 1', type: 'mc', q: 'Wie hoch muss der Sauerstoffanteil in atembarer Luft mindestens sein?', opts: ['a) 21%', 'b) 15%', 'c) 17%'], ans: 2 },
+            { id: 'T1_10', cat: 'Teil 1', type: 'mc', q: 'Ist Kohlendioxid (CO2) für den Menschen wichtig?', opts: ['a) ja, es hält die Atmung in Gang', 'b) ja, es regt die Lunge an', 'c) nein'], ans: 0 },
+            { id: 'T1_11', cat: 'Teil 1', type: 'mc', q: 'Ist Kohlenmonoxid (CO) ein brennbares Gas?', opts: ['a) ja', 'b) nein', 'c) bedingt'], ans: 0 },
+            { id: 'T1_12', cat: 'Teil 1', type: 'mc', q: 'Womit ist bei Einsätzen in Silos, Jauchegruben, Kanälen, Tanks usw. zu rechnen?', opts: ['a) mit geringer Gefahr', 'b) mit keiner Gefahr', 'c) mit Atemgiften'], ans: 2 },
+            { id: 'T1_13', cat: 'Teil 1', type: 'mc', q: 'Zu welcher Art von Atemschutz gehören Pressluftatmer?', opts: ['a) zu umluftunabhängigen', 'b) zu umluftabhängigen', 'c) zu arbeitsgebundenen'], ans: 0 },
+            { id: 'T1_14', cat: 'Teil 1', type: 'mc', q: 'Wie werden Pressluftatmer noch bezeichnet?', opts: ['a) leichter Atemschutz', 'b) schwerer Atemschutz', 'c) Kurzzeit-Atemschutz'], ans: 1 },
+            { id: 'T1_15', cat: 'Teil 1', type: 'mc', q: 'Was muss beim Kauf von FW-Kombinationsfiltern beachtet werden?', opts: ['a) Verpackungsgröße', 'b) Sättigung', 'c) Filterwirkung und Ablaufdatum'], ans: 2 },
+            { id: 'T1_16', cat: 'Teil 1', type: 'mc', q: 'Wie hoch ist der Betriebsdruck von Atemluftflaschen?', opts: ['a) 180/270 bar', 'b) 200/300 bar', 'c) 225/330 bar'], ans: 1 },
+            { id: 'T1_17', cat: 'Teil 1', type: 'mc', q: 'Wie hoch muss der Flaschendruck in 200 bar Flaschen mindestens sein?', opts: ['a) 150 bar', 'b) 180 bar', 'c) 220 bar'], ans: 1 },
+            { id: 'T1_18', cat: 'Teil 1', type: 'mc', q: 'Wodurch wird die wiederkehrende Prüfung einer Atemluftflasche aus Stahl bestätigt?', opts: ['a) Stempel auf der Atemluftflasche', 'b) Druckbehälterbescheinigung', 'c) mit einem Aufkleber'], ans: 0 },
+            { id: 'T1_19', cat: 'Teil 1', type: 'mc', q: 'Dürfen Atemluftflaschen vollständig entleert werden?', opts: ['a) sollen immer vor dem Füllen ganz entleert werden', 'b) ja', 'c) nein (außer bei wiederkehrenden Prüfungen)'], ans: 2 },
+            { id: 'T1_20', cat: 'Teil 1', type: 'mc', q: 'Wo muss die Genehmigung zum Befüllen von im Feuerwehrdienst eingesetzten Atemluftflaschen angebracht sein?', opts: ['a) im Prüfbuch des Kompressors', 'b) im Kommandoraum des Feuerwehrhauses', 'c) sichtbar in der Nähe der Füllstelle'], ans: 2 },
+            { id: 'T1_21', cat: 'Teil 1', type: 'mc', q: 'Was ist nach der Verwendung einer Atemschutzmaske durchzuführen?', opts: ['a) reinigen/desinfizieren/prüfen', 'b) verstauen im Feuerwehrfahrzeug', 'c) in den AS-Raum legen'], ans: 0 },
+            { id: 'T1_22', cat: 'Teil 1', type: 'mc', q: 'In welchen Abständen ist eine Grundüberholung von Pressluftatmern bei einer autorisierten Stelle durchzuführen?', opts: ['a) alle 5 Jahre', 'b) alle 6/9 oder 10 Jahre', 'c) alle 8 Jahre'], ans: 1 },
+            { id: 'T1_23', cat: 'Teil 1', type: 'mc', q: 'Was ist nach der Verwendung eines Pressluftatmers durchzuführen?', opts: ['a) Wartung nach der Bedienungsanleitung', 'b) verstauen im Feuerwehrfahrzeug', 'c) in den AS-Raum zur Wartung legen'], ans: 0 },
+            { id: 'T1_24', cat: 'Teil 1', type: 'mc', q: 'Welche Druckprüfung ist nach jedem Flaschenwechsel am Atemschutzgerät durchzuführen?', opts: ['a) Niederdruckprüfung', 'b) Hochdruck-Dichtprüfung', 'c) Überdruckprüfung'], ans: 1 },
+            { id: 'T1_25', cat: 'Teil 1', type: 'mc', q: 'Worauf ist bei der Durchführung einer Hochdruckdichtprüfung an Atemschutzgeräten zu achten?', opts: ['a) dass beide Pressluftflaschenventile geschlossen sind', 'b) dass beide Pressluftflaschenventile offen sind', 'c) dass der Manometer funktioniert'], ans: 0 },
+            { id: 'T1_26', cat: 'Teil 1', type: 'mc', q: 'Wie kann eine Rauchdurchzündung verhindert werden?', opts: ['a) Funkverkehr unterlassen', 'b) Kühlen der Brandgase an der Decke mit Sprühstrahl', 'c) Schließen aller Fenster und Türen'], ans: 1 },
+            { id: 'T1_27', cat: 'Teil 1', type: 'mc', q: 'Womit kann man eine explosionsfähige Atmosphäre am Einsatzort nachweisen?', opts: ['a) Explosimeter', 'b) Prüfröhrchen', 'c) Gaschromatograph'], ans: 0 },
+            { id: 'T1_28', cat: 'Teil 1', type: 'mc', q: 'Mit welcher Farbe (lt. EN 1089/3) sind Gasflaschen mit brennbaren Gasen (ausgenommen Acetylen), gekennzeichnet?', opts: ['a) rot', 'b) gelb', 'c) orange'], ans: 0 },
+            { id: 'T1_29', cat: 'Teil 1', type: 'mc', q: 'Was bedeutet ein "X65" vor einer Gefahrennummer?', opts: ['a) Dämpfe mit Sprühstrahl niederschlagen', 'b) Stoff reagiert gefährlich mit Wasser', 'c) Stoff mit Wasser auflösen'], ans: 1 },
+            { id: 'T1_30', cat: 'Teil 1', type: 'mc', q: 'Mit welcher Gefahrennummer wird Superbenzin gekennzeichnet?', opts: ['a) 3', 'b) 33', 'c) 333'], ans: 1 },
+
+            // --- TEIL 1 (Offen) ---
+            { id: 'T1_31', cat: 'Teil 1', type: 'open', q: 'Wie kann der Rauchaustritt in nicht betroffene Gebäudeteile verhindert werden?', a: 'Durch den Einsatz eines Rauchvorhanges' },
+            { id: 'T1_32', cat: 'Teil 1', type: 'open', q: 'Was besagt die GAMS-Regel?', a: 'Gefahr erkennen - Absperren, Absichern - Menschen retten - Spezialkräfte anfordern' },
+            { id: 'T1_33', cat: 'Teil 1', type: 'open', q: 'Welche Aufgabe hat das federbelastete Ausatemventil bei Überdruck-AS-Masken?', a: 'Damit Überdruck in der Maske aufgebaut werden kann' },
+            { id: 'T1_34', cat: 'Teil 1', type: 'open', q: 'Wie heißt die Grenze, ab der ein explosionsfähiges Gas-Luftgemisch zündfähig ist?', a: 'Untere Explosionsgrenze (UEG)' },
+            { id: 'T1_35', cat: 'Teil 1', type: 'open', q: 'Welche Maßnahme sollte parallel zur Brandbekämpfung durchgeführt werden?', a: 'Schaffen von Abluftöffnungen und Meldung an den GRKDT' },
+            { id: 'T1_36', cat: 'Teil 1', type: 'open', q: 'Wie lange dürfen originalverschlossene Feuerwehr-Kombinationsfilter gelagert werden?', a: 'Bis zum Ablaufdatum' },
+            { id: 'T1_37', cat: 'Teil 1', type: 'open', q: 'Welche 4 Faktoren müssen vorherrschen, damit ein Brand entstehen kann?', a: 'Sauerstoff, Wärme, brennbarer Stoff, richtiges Mengenverhältnis' },
+            { id: 'T1_38', cat: 'Teil 1', type: 'open', q: 'Zum Erkennen von welchen 3 Gefahren werden im Feuerwehrdienst Warn- und Messgeräte verwendet?', a: 'Explosionsgefahr, Sauerstoffmangel, Vergiftungsgefahr durch Atemgifte' },
+            { id: 'T1_39', cat: 'Teil 1', type: 'open', q: 'Welche 3 Voraussetzungen müssen gegeben sein, dass Filtergeräte zum Einsatz gebracht werden dürfen?', a: '1. Sauerstoffgehalt mind. 17 Vol%\n2. Geringe Schadstoffkonzentration\n3. Keine Atemgifte, gegen die der Filter nicht schützt' },
+            { id: 'T1_40', cat: 'Teil 1', type: 'open', q: 'Bei welcher Stützpunktfeuerwehr für meinen Bezirk sind das Atemschutzfahrzeug und das Gefährliche-Stoffe-Fahrzeug stationiert?', a: 'ASF: BTF Nettingsdorf\nGSF: BF Linz' },
+
+            // --- TEIL 2 (MC) ---
+            { id: 'T2_1', cat: 'Teil 2', type: 'mc', q: 'Wer führt den Atemschutztrupp im Einsatz?', opts: ['a) ASTRM 2', 'b) ASTRM 1', 'c) ASTRF'], ans: 2 },
+            { id: 'T2_2', cat: 'Teil 2', type: 'mc', q: 'Ist eine spezielle Ausbildung zum Tragen von Atemschutz im Feuerwehrdienst vorgeschrieben?', opts: ['a) nein', 'b) ja', 'c) nicht unbedingt'], ans: 1 },
+            { id: 'T2_3', cat: 'Teil 2', type: 'mc', q: 'Muss die Ausbildung zum AS-Träger an der Landes-Feuerwehrschule durchgeführt werden?', opts: ['a) nein, nicht unbedingt', 'b) ja, und nur dort', 'c) nur wenn es wo anders nicht möglich ist'], ans: 0 },
+            { id: 'T2_4', cat: 'Teil 2', type: 'mc', q: 'Wie ist eine Atemschutzsammelstelle gekennzeichnet?', opts: ['a) mit gelbem Drehlicht', 'b) mit grünem Drehlicht', 'c) mit rotem Drehlicht'], ans: 1 },
+            { id: 'T2_5', cat: 'Teil 2', type: 'mc', q: 'Was bedeutet ein Dauerhupsignal an der Einsatzstelle?', opts: ['a) keine besondere Bedeutung', 'b) alle Einsatzkräfte vor', 'c) sofortiger Rückzug aller Einsatzkräfte'], ans: 2 },
+            { id: 'T2_6', cat: 'Teil 2', type: 'mc', q: 'Wie lange kann ein Mensch (im Regelfall) ohne Sauerstoff (Atmung) leben?', opts: ['a) ca. 10 Minuten', 'b) ca. 5 Minuten', 'c) ca. 3 Minuten'], ans: 2 },
+            { id: 'T2_7', cat: 'Teil 2', type: 'mc', q: 'Wie bewegt sich ein Atemschutztrupp in verrauchten Räumen?', opts: ['a) gemeinsam in Bodennähe', 'b) stehend, achtet auf spitze Gegenstände', 'c) vorausschauend, sehr vorsichtig'], ans: 0 },
+            { id: 'T2_8', cat: 'Teil 2', type: 'mc', q: 'Wie hoch ist der Anteil von Sauerstoff in der Umgebungsluft?', opts: ['a) 31%', 'b) 21%', 'c) 41%'], ans: 1 },
+            { id: 'T2_9', cat: 'Teil 2', type: 'mc', q: 'Kann Sauerstoffmangel in der Atemluft vom Menschen wahrgenommen werden?', opts: ['a) ja', 'b) nein', 'c) bedingt'], ans: 1 },
+            { id: 'T2_10', cat: 'Teil 2', type: 'mc', q: 'Welches Gas entsteht bei unvollständiger Verbrennung?', opts: ['a) Stickstoff (N2)', 'b) Kohlendioxid (CO2)', 'c) Kohlenmonoxid (CO)'], ans: 2 },
+            { id: 'T2_11', cat: 'Teil 2', type: 'mc', q: 'Können feste Stoffe Atemgifte sein?', opts: ['a) bedingt', 'b) nein', 'c) ja, z.B. Staub'], ans: 2 },
+            { id: 'T2_12', cat: 'Teil 2', type: 'mc', q: 'Zu welcher Art von Atemschutz gehören Filtergeräte?', opts: ['a) zu umluftabhängigen', 'b) zu umluftunabhängigen', 'c) zum schweren'], ans: 0 },
+            { id: 'T2_13', cat: 'Teil 2', type: 'mc', q: 'Woran sind Pressluftatmer gebunden?', opts: ['a) Ort', 'b) Zeit', 'c) Umgebungsluft'], ans: 1 },
+            { id: 'T2_14', cat: 'Teil 2', type: 'mc', q: 'Welche Systeme werden bei AS-Geräten verwendet?', opts: ['a) Normaldruck und Überdrucksysteme', 'b) Einweg- und Zweiwegsysteme', 'c) Unterdrucksystem'], ans: 0 },
+            { id: 'T2_15', cat: 'Teil 2', type: 'mc', q: 'Wo ist das Ablaufdatum eines Atemfilters ersichtlich?', opts: ['a) auf der Versiegelung', 'b) im Beipackzettel', 'c) Aufdruck am Filtergehäuse'], ans: 2 },
+            { id: 'T2_16', cat: 'Teil 2', type: 'mc', q: 'Welches Volumen hat eine 200 bar Atemluftflasche aus Stahl?', opts: ['a) 6 Liter', 'b) 5 Liter', 'c) 4 Liter'], ans: 2 },
+            { id: 'T2_17', cat: 'Teil 2', type: 'mc', q: 'Wie hoch muss der Flaschendruck in 300 bar Flaschen mindestens sein?', opts: ['a) 250 bar', 'b) 270 bar', 'c) 320 bar'], ans: 1 },
+            { id: 'T2_18', cat: 'Teil 2', type: 'mc', q: 'Wodurch ist eine Atemluftflasche einwandfrei zu identifizieren?', opts: ['a) Farbkennzeichnung, Seriennummer', 'b) Gewicht', 'c) Baugröße/Durchmesser'], ans: 0 },
+            { id: 'T2_19', cat: 'Teil 2', type: 'mc', q: 'Warum dürfen Atemluftflaschen außer bei der Prüfung nicht vollständig entleert werden?', opts: ['a) weil der Flaschenkörper immer unter Druck stehen muss', 'b) weil sonst das Ventil keinen Gegendruck hat', 'c) damit keine feuchte Luft eindringen kann'], ans: 2 },
+            { id: 'T2_20', cat: 'Teil 2', type: 'mc', q: 'Sind außer jenen Personen, die im Prüfbuch angeführt sind, weitere Personen zum Bedienen einer Füllstelle berechtigt?', opts: ['a) nein', 'b) ja', 'c) im Einsatzfall'], ans: 0 },
+            { id: 'T2_21', cat: 'Teil 2', type: 'mc', q: 'Welche Ventile sind Bestandteil einer AS-Maske?', opts: ['a) Unter- und Überdruckventil', 'b) Ein- und Ausatemventil', 'c) Hoch- und Niederdruckventil'], ans: 1 },
+            { id: 'T2_22', cat: 'Teil 2', type: 'mc', q: 'Woran ist die Einhaltung der Grundüberholungstermine von Pressluftatmern ersichtlich?', opts: ['a) Rechnung', 'b) Prüfplakette am Gerät', 'c) Prüfprotokoll'], ans: 1 },
+            { id: 'T2_23', cat: 'Teil 2', type: 'mc', q: 'Wer ist innerhalb der Feuerwehr für die Instandhaltung von Atemschutzgeräten verantwortlich?', opts: ['a) Atemschutzwart', 'b) Kommandant', 'c) Gerätewart'], ans: 0 },
+            { id: 'T2_24', cat: 'Teil 2', type: 'mc', q: 'Wie lange muss die Hochdruckdichtprüfung von Atemschutzgeräten dauern?', opts: ['a) 1 Minute', 'b) 5 Minuten', 'c) 10 Minuten'], ans: 0 },
+            { id: 'T2_25', cat: 'Teil 2', type: 'mc', q: 'Was muss nach der Hochdruckdichtprüfung am Atemschutzgerät überprüft werden?', opts: ['a) Restdruckwarnung', 'b) Niederdruckwarnung', 'c) Hochdruckwarnung'], ans: 0 },
+            { id: 'T2_26', cat: 'Teil 2', type: 'mc', q: 'Womit muss das Anschlussstück des Lungenautomaten vor Beschädigungen geschützt werden?', opts: ['a) durch die Maske', 'b) mit einem Tuch', 'c) Lungenautomatenhalter oder Schutzkappe'], ans: 2 },
+            { id: 'T2_27', cat: 'Teil 2', type: 'mc', q: 'Welcher Sicherheitsabstand ist an elektrischen Anlagen bis 1000 V beim Einsatz von Wasser einzuhalten?', opts: ['a) Sprühstrahl 2 m / Vollstrahl 4 m', 'b) Sprühstrahl 1 m / Vollstrahl 5 m', 'c) Sprühstrahl 3 m / Vollstrahl 6 m'], ans: 1 },
+            { id: 'T2_28', cat: 'Teil 2', type: 'mc', q: 'Mit welcher Farbe (lt. EN 1089/3) sind Gasflaschen, die mit Acetylen gefüllt sind, gekennzeichnet?', opts: ['a) orange', 'b) rot', 'c) kastanienbraun'], ans: 2 },
+            { id: 'T2_29', cat: 'Teil 2', type: 'mc', q: 'Was bedeuten die oberen Ziffern bei einer Gefahrenguttafel?', opts: ['a) UN-Nummer', 'b) Gefahrennummer', 'c) Notrufnummer'], ans: 1 },
+            { id: 'T2_30', cat: 'Teil 2', type: 'mc', q: 'Mit welcher Gefahrennummer werden ansteckungsgefährliche Stoffe gekennzeichnet?', opts: ['a) 606', 'b) 666', 'c) 699'], ans: 0 },
+
+            // --- TEIL 2 (Offen) ---
+            { id: 'T2_31', cat: 'Teil 2', type: 'open', q: 'Ab welchem Sauerstoffgehalt in der Einatemluft tritt eine Gefährdung der Gesundheit ein?', a: 'Unter 15 Vol%' },
+            { id: 'T2_32', cat: 'Teil 2', type: 'open', q: 'Was besagt die 3-A-Regel?', a: 'Abstand - Aufenthaltszeit - Abschirmung' },
+            { id: 'T2_33', cat: 'Teil 2', type: 'open', q: 'In welcher Maßeinheit messen die bei der Feuerwehr eingesetzten Explosimeter?', a: '% Untere Explosionsgrenze (% UEG)' },
+            { id: 'T2_34', cat: 'Teil 2', type: 'open', q: 'Sie haben Ihren Auftrag im 1. OG durchgeführt und wollen nun das 2. OG kontrollieren. Was muss beachtet werden?', a: 'Bekanntgabe der Ortsveränderung ins 2. OG per Funk an den GRKDT' },
+            { id: 'T2_35', cat: 'Teil 2', type: 'open', q: 'Welche 3 Arten von Atemgiften kennen Sie?', a: '1. Stickgase\n2. Blut-, Nerven- und Zellgifte\n3. Reiz- und Ätzgifte' },
+            { id: 'T2_36', cat: 'Teil 2', type: 'open', q: 'Wie lange dürfen bereits gebrauchte, aber nicht gesättigte Feuerwehr-Kombinationsfilter gelagert werden?', a: 'Max. 6 Monate' },
+            { id: 'T2_37', cat: 'Teil 2', type: 'open', q: 'Bei welcher Stützpunktfeuerwehr für meinen Bezirk sind Schutzanzüge der Schutzstufe 3 stationiert?', a: 'FF Enns' },
+            { id: 'T2_38', cat: 'Teil 2', type: 'open', q: 'Welche 2 Hauptgruppen von Atemschutzgeräten gibt es?', a: '1. Umluftabhängige Atemschutzgeräte (Filtergeräte)\n2. Umluftunabhängige Atemschutzgeräte (Isoliergeräte)' },
+            { id: 'T2_39', cat: 'Teil 2', type: 'open', q: 'Was ist Kohlenmonoxid? (Chemische Abkürzung, Vorkommen, physikalische Eigenschaft.)', a: '• Abkürzung: CO\n• Vorkommen: Unvollständige Verbrennung, Bergwerk, Abgase (Industrie/Verkehr)\n• Eigenschaft: Leichter als Luft' },
+            { id: 'T2_40', cat: 'Teil 2', type: 'open', q: 'Ein AS-Träger verbraucht 50 L/min. Wie lange kann er bis zum Ansprechen der Restdruckwarnung (50 bar) im Einsatz bleiben, wenn sich im PA (2x4L/200bar) noch 150 bar befinden?', a: 'Vorhandener Druck: 150 - 50 = 100 bar\nVolumen: 2x4 = 8 Liter\nLuftvorrat: 100x8 = 800 Liter\nRestzeit: 800 / 50 = 16 Minuten' },
+
+            // --- TEIL 3 (MC) ---
+            { id: 'T3_1', cat: 'Teil 3', type: 'mc', q: 'Welche ärztliche Untersuchung muss vor dem Ausbildungsbeginn eines AS-Trägers durchgeführt werden?', opts: ['a) Herzuntersuchung', 'b) AS-Tauglichkeitsuntersuchung', 'c) Lungenuntersuchung'], ans: 1 },
+            { id: 'T3_2', cat: 'Teil 3', type: 'mc', q: 'Muss eine fundierte Ausbildung zum Atemschutzträger nachweisbar sein?', opts: ['a) nein', 'b) ja', 'c) nicht unbedingt'], ans: 1 },
+            { id: 'T3_3', cat: 'Teil 3', type: 'mc', q: 'Wie oft muss ein Atemschutzträger an "einsatzmäßig gestalteten" Übungen teilnehmen?', opts: ['a) mind. 2 mal/Jahr', 'b) mind. 1 mal/Jahr', 'c) mind. 3 mal/Jahr'], ans: 0 },
+            { id: 'T3_4', cat: 'Teil 3', type: 'mc', q: 'Wer führt den Atemschutztrupp im Einsatz?', opts: ['a) ASTRM 2', 'b) ASTRM 1', 'c) ASTRF'], ans: 2 },
+            { id: 'T3_5', cat: 'Teil 3', type: 'mc', q: 'Wie verhält sich der AS-Trupp, wenn bei einem AS-Träger die Restdruckwarnung anspricht?', opts: ['a) weiter vorrücken und Ausgang suchen', 'b) Manometerkontrolle der Pressluftatmer', 'c) kontrollierter Rückzug des AS-Trupps'], ans: 2 },
+            { id: 'T3_6', cat: 'Teil 3', type: 'mc', q: 'Durchschnittlicher Luftverbrauch beim Tragen von Atemschutzgeräten bei mittelschwerer Arbeit?', opts: ['a) ca. 10-20 Liter/min', 'b) ca. 40-60 Liter/min', 'c) ca. 90-120 Liter/min'], ans: 1 },
+            { id: 'T3_7', cat: 'Teil 3', type: 'mc', q: 'Wann darf im Atemschutzeinsatz der Funkkanal geändert werden?', opts: ['a) nur nach Anweisung des Einsatzleiters', 'b) bei Gelegenheit', 'c) von Zeit zu Zeit'], ans: 0 },
+            { id: 'T3_8', cat: 'Teil 3', type: 'mc', q: 'Was bedeutet das Ansprechen des Bewegungslosmelders?', opts: ['a) meine Luft geht zu Ende', 'b) benötige Hilfe', 'c) Flaschendruck zu gering'], ans: 1 },
+            { id: 'T3_9', cat: 'Teil 3', type: 'mc', q: 'Ist Kohlendioxid (CO2) schwerer als Luft?', opts: ['a) nein', 'b) ja', 'c) gleich schwer'], ans: 1 },
+            { id: 'T3_10', cat: 'Teil 3', type: 'mc', q: 'Ist Kohlenmonoxid (CO) schwerer als Luft?', opts: ['a) nein, es ist leichter', 'b) ja', 'c) gleich schwer'], ans: 0 },
+            { id: 'T3_11', cat: 'Teil 3', type: 'mc', q: 'Wodurch kann eine Atemkrise vermieden werden?', opts: ['a) nicht vermeidbar', 'b) schnelles Atmen', 'c) durch ruhiges und tiefes Atmen'], ans: 2 },
+            { id: 'T3_12', cat: 'Teil 3', type: 'mc', q: 'Zu welcher Art von Atemschutz gehören Schlauchgeräte?', opts: ['a) zu Fluchtgeräten', 'b) zu umluftabhängigen', 'c) zu umluftunabhängigen'], ans: 2 },
+            { id: 'T3_13', cat: 'Teil 3', type: 'mc', q: 'Wie werden Filtergeräte im Feuerwehrdienst noch bezeichnet?', opts: ['a) schwerer Atemschutz', 'b) leichter Atemschutz', 'c) Langzeit-Atemschutz'], ans: 1 },
+            { id: 'T3_14', cat: 'Teil 3', type: 'mc', q: 'Wie werden Atemfilter eingeteilt?', opts: ['a) in Filterschutzstufen', 'b) in Filtergruppen', 'c) in Filterklassen'], ans: 2 },
+            { id: 'T3_15', cat: 'Teil 3', type: 'mc', q: 'Dürfen Filtergeräte im Zweifelsfall verwendet werden?', opts: ['a) ja', 'b) nein', 'c) im Freien'], ans: 1 },
+            { id: 'T3_16', cat: 'Teil 3', type: 'mc', q: 'Welches Volumen hat eine 300 bar Atemluftflasche aus Stahl?', opts: ['a) 6 Liter', 'b) 5 Liter', 'c) 8 Liter'], ans: 0 },
+            { id: 'T3_17', cat: 'Teil 3', type: 'mc', q: 'In welchen Zeitabständen müssen Atemluftflaschen aus Stahl wiederkehrend geprüft werden?', opts: ['a) alle 6 Jahre', 'b) alle 10 Jahre', 'c) alle 8 Jahre'], ans: 1 },
+            { id: 'T3_18', cat: 'Teil 3', type: 'mc', q: 'Wo ist die Seriennummer einer aus Stahl gefertigten Atemluftflasche üblicherweise zu finden?', opts: ['a) am Flaschenhals', 'b) am Flaschenboden', 'c) am Flaschenventil'], ans: 0 },
+            { id: 'T3_19', cat: 'Teil 3', type: 'mc', q: 'Wo dürfen Atemluftflaschen von im Feuerwehrdienst eingesetzten Atemluftgeräten befüllt werden?', opts: ['a) bei vom OÖLFK zugelassenen Füllstellen', 'b) bei jedem Kompressor', 'c) nur beim LFK'], ans: 0 },
+            { id: 'T3_20', cat: 'Teil 3', type: 'mc', q: 'Wie oft müssen Atemschutzmasken nachweisbar geprüft werden?', opts: ['a) mind. 3 x jährlich', 'b) mind. alle 2 Jahre', 'c) nach jeder Verwendung, mind. 2 x jährlich'], ans: 2 },
+            { id: 'T3_21', cat: 'Teil 3', type: 'mc', q: 'Wo sind die Atemschutzgeräte anzulegen?', opts: ['a) innerhalb des Gefahrenbereichs', 'b) im Feuerwehrhaus', 'c) außerhalb des Gefahrenbereichs'], ans: 2 },
+            { id: 'T3_22', cat: 'Teil 3', type: 'mc', q: 'In welchen Abständen müssen Überprüfungen der Pressluftatmer nachweisbar durchgeführt werden?', opts: ['a) alle 2 Jahre', 'b) nach jeder Verwendung, mind. 2 x jährlich', 'c) mind. 4 x jährlich'], ans: 1 },
+            { id: 'T3_23', cat: 'Teil 3', type: 'mc', q: 'Wie werden Druckminderer und Lungenautomat eines Atemschutzgerätes überprüft?', opts: ['a) mit einem Kleinprüfgerät', 'b) durch Beobachten des Manometers', 'c) Hochdruck-Dichtprüfung'], ans: 0 },
+            { id: 'T3_24', cat: 'Teil 3', type: 'mc', q: 'Wie weit darf der am Manometer eines Atemschutzgerätes angezeigte Druck während der Hochdruckdichtprüfung abfallen?', opts: ['a) max. 20 bar', 'b) max. 15 bar', 'c) max. 10 bar'], ans: 2 },
+            { id: 'T3_25', cat: 'Teil 3', type: 'mc', q: 'Bei welchem Druck muss die Restdruckwarnung eines Atemschutzgerätes ansprechen?', opts: ['a) frühestens bei 50 bar', 'b) spätestens bei 50 bar', 'c) bei 65 bar'], ans: 1 },
+            { id: 'T3_26', cat: 'Teil 3', type: 'mc', q: 'Mit welcher Geschwindigkeit breitet sich eine Explosion aus?', opts: ['a) Meter / Minute', 'b) Meter / Sekunde', 'c) 1/10 Meter / Sekunde'], ans: 1 },
+            { id: 'T3_27', cat: 'Teil 3', type: 'mc', q: 'Welcher Wasserstrahl wird vorzugsweise beim Innenangriff verwendet?', opts: ['a) Sprühstrahl', 'b) Vollstrahl', 'c) Mittelstrahl'], ans: 0 },
+            { id: 'T3_28', cat: 'Teil 3', type: 'mc', q: 'Mit welcher Farbe (lt. EN 1089/3) sind Gasflaschen, die mit Sauerstoff gefüllt sind, gekennzeichnet?', opts: ['a) blau', 'b) weiß', 'c) grün'], ans: 1 },
+            { id: 'T3_29', cat: 'Teil 3', type: 'mc', q: 'Was bedeutet die Gefahrennummer "26"?', opts: ['a) oxidierendes Gas', 'b) entzündbares Gas', 'c) giftiges Gas'], ans: 2 },
+            { id: 'T3_30', cat: 'Teil 3', type: 'mc', q: 'Wodurch wird (neben der Kennzeichnung mit Gefahrennummer) auf besondere Gefahren hingewiesen?', opts: ['a) Transportschein', 'b) Gefahrenzettel', 'c) Lieferschein'], ans: 1 },
+
+            // --- TEIL 3 (Offen) ---
+            { id: 'T3_31', cat: 'Teil 3', type: 'open', q: 'Was bedeutet die Angabe „UEG“?', a: 'Untere Explosionsgrenze' },
+            { id: 'T3_32', cat: 'Teil 3', type: 'open', q: 'Wie können Räume effektiver abgesucht werden?', a: 'Unter Zuhilfenahme einer Wärmebildkamera' },
+            { id: 'T3_33', cat: 'Teil 3', type: 'open', q: 'Wie hoch ist der Kohlendioxid-Anteil in der Ausatemluft?', a: 'Ca. 4%' },
+            { id: 'T3_34', cat: 'Teil 3', type: 'open', q: 'Welches Gas ist für die Steuerung der Atmung verantwortlich?', a: 'Kohlenstoffdioxid' },
+            { id: 'T3_35', cat: 'Teil 3', type: 'open', q: 'Was versteht man unter dem "MAK-Wert"?', a: 'Maximale Arbeitsplatzkonzentration' },
+            { id: 'T3_36', cat: 'Teil 3', type: 'open', q: 'Welche Bezeichnung (inkl. Filterklassen) hat der im Feuerwehrdienst hauptsächlich verwendete Filter?', a: 'Feuerwehr-Kombinationsfilter, A2B2E2K2Hg/P3' },
+            { id: 'T3_37', cat: 'Teil 3', type: 'open', q: 'Wie heißen die Schutzstufen für die Schutzbekleidung (inkl. Bezeichnung)?', a: '1 - Brandschutzbekleidung\n2 - Teilschutzbekleidung\n3 - Vollschutzbekleidung\n4 - Spezialschutzbekleidung' },
+            { id: 'T3_38', cat: 'Teil 3', type: 'open', q: 'Zu welchem Stützpunktfahrzeug des OÖLFV ist eine Gasspürpumpe mit Prüfröhrchen verlagert?', a: 'Gefährliche-Stoffe-Fahrzeug' },
+            { id: 'T3_39', cat: 'Teil 3', type: 'open', q: 'Was ist Kohlendioxid? (Chemische Abkürzung, Vorkommen, physikalische Eigenschaft)', a: '• Abkürzung: CO2\n• Vorkommen: Vollständige Verbrennung, Abgase (Industrie/Verkehr), Gärkeller, Silos\n• Eigenschaft: Schwerer als Luft' },
+            { id: 'T3_40', cat: 'Teil 3', type: 'open', q: 'Berechne den Luftverbrauch pro Minute.\nGerät: 2x4L/200bar. Anfangsdruck: 200 bar, Enddruck: 80 bar.\nAnfangszeit: 10:20 Uhr, Endzeit: 10:44 Uhr', a: 'Druckverbrauch: 200 - 80 = 120 bar\nVolumen: 2x4 = 8 Liter\nGesamtverbrauch: 120 x 8 = 960 Liter\nEinsatzdauer: 24 Minuten\nLuftverbrauch pro Min: 960 / 24 = 40 Liter/min' }
+        ];
+
+        // --- 2. STATE ---
+        let currentPool = [];
+        let currentIndex = 0;
+        let score = 0;
+        let shuffleMode = false;
+
+        const appDiv = document.getElementById('app');
+
+        // --- 3. RENDER FUNCTIONS ---
+        function shuffleArray(array) {
+            let curId = array.length, temp, rndId;
+            while (0 !== curId) {
+                rndId = Math.floor(Math.random() * curId);
+                curId -= 1;
+                temp = array[curId];
+                array[curId] = array[rndId];
+                array[rndId] = temp;
+            }
+            return array;
+        }
+
+        function renderMenu() {
+            appDiv.innerHTML = `
+                <div class="card text-center mb-4">
+                    <h2>Bereit für die Prüfung?</h2>
+                    <p style="color:var(--text-muted); font-size:0.9rem;">Wähle einen Bereich zum Üben aus.</p>
+                </div>
+                
+                <div class="toggle-container">
+                    <label style="font-weight:600; color:var(--text-main);">🔀 Zufällige Reihenfolge</label>
+                    <label class="switch">
+                        <input type="checkbox" id="shuffleToggle" ${shuffleMode ? 'checked' : ''} onchange="toggleShuffle(this)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <button class="btn primary" onclick="startQuiz('all')">Alle Fragen üben (131)</button>
+                <button class="btn" onclick="startQuiz('Station 4')">Station 4 (Mündlich) - 11 Fragen</button>
+                <button class="btn" onclick="startQuiz('Teil 1')">Teil 1 - 40 Fragen</button>
+                <button class="btn" onclick="startQuiz('Teil 2')">Teil 2 - 40 Fragen</button>
+                <button class="btn" onclick="startQuiz('Teil 3')">Teil 3 - 40 Fragen</button>
+            `;
+        }
+
+        function toggleShuffle(cb) {
+            shuffleMode = cb.checked;
+        }
+
+        function startQuiz(category) {
+            if (category === 'all') {
+                currentPool = [...questionsData];
+            } else {
+                currentPool = questionsData.filter(q => q.cat === category);
+            }
+
+            if (shuffleMode) shuffleArray(currentPool);
+
+            currentIndex = 0;
+            score = 0;
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const q = currentPool[currentIndex];
+            const progress = ((currentIndex) / currentPool.length) * 100;
+            
+            let html = `
+                <div class="stats">
+                    <span>Frage ${currentIndex + 1} von ${currentPool.length}</span>
+                    <span>Richtig: ${score}</span>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-fill" style="width: ${progress}%"></div>
+                </div>
+
+                <div class="card">
+                    <span class="q-tag">${q.cat} ${q.type === 'mc' ? '• Multiple Choice' : '• Offene Frage'}</span>
+                    <h2 class="question-text">${q.q.replace(/\n/g, '<br>')}</h2>
+            `;
+
+            if (q.type === 'mc') {
+                q.opts.forEach((opt, idx) => {
+                    html += `<button class="btn mc-btn" onclick="handleMcAnswer(${idx}, this)">${opt}</button>`;
+                });
+                html += `</div>`; // close card
+                html += `
+                    <div id="next-container" class="hidden">
+                        <button class="btn primary mt-4" onclick="nextQuestion()">Weiter zur nächsten Frage</button>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div id="answer-reveal" class="hidden">
+                        <div class="answer-box">
+                            <p>${q.a.replace(/\n/g, '<br>')}</p>
+                        </div>
+                    </div>
+                </div>`; // close card
+                
+                html += `
+                    <div id="action-reveal">
+                        <button class="btn secondary" onclick="showAnswer()">Lösung anzeigen</button>
+                    </div>
+                    <div id="action-eval" class="action-row hidden">
+                        <button class="btn wrong" onclick="handleOpenAnswer(false)">Nicht gewusst ❌</button>
+                        <button class="btn correct" onclick="handleOpenAnswer(true)">Gewusst ✅</button>
+                    </div>
+                `;
+            }
+
+            appDiv.innerHTML = html;
+        }
+
+        function handleMcAnswer(selectedIndex, btnEl) {
+            const q = currentPool[currentIndex];
+            const allBtns = document.querySelectorAll('.mc-btn');
+            
+            // Disable all buttons
+            allBtns.forEach(btn => btn.disabled = true);
+
+            if (selectedIndex === q.ans) {
+                btnEl.classList.add('correct');
+                score++;
+            } else {
+                btnEl.classList.add('wrong');
+                // Highlight correct one
+                allBtns[q.ans].classList.add('correct');
+            }
+
+            // Update score display immediately
+            document.querySelector('.stats span:last-child').innerText = `Richtig: ${score}`;
+            document.getElementById('next-container').classList.remove('hidden');
+        }
+
+        function showAnswer() {
+            document.getElementById('answer-reveal').classList.remove('hidden');
+            document.getElementById('action-reveal').classList.add('hidden');
+            document.getElementById('action-eval').classList.remove('hidden');
+        }
+
+        function handleOpenAnswer(knewIt) {
+            if (knewIt) score++;
+            nextQuestion();
+        }
+
+        function nextQuestion() {
+            currentIndex++;
+            if (currentIndex >= currentPool.length) {
+                renderResult();
+            } else {
+                renderQuestion();
+            }
+        }
+
+        function renderResult() {
+            const percentage = Math.round((score / currentPool.length) * 100);
+            let message = "Weiter üben!";
+            if (percentage >= 90) message = "Perfekt! Du bist bereit!";
+            else if (percentage >= 70) message = "Gute Arbeit!";
+
+            appDiv.innerHTML = `
+                <div class="card text-center" style="padding: 3rem 1rem;">
+                    <h2 style="font-size: 3rem; margin: 0;">${percentage}%</h2>
+                    <p style="font-size: 1.2rem; font-weight: bold; color: var(--primary);">${message}</p>
+                    <p style="color: var(--text-muted); margin-bottom: 2rem;">Du hast ${score} von ${currentPool.length} Fragen richtig beantwortet.</p>
+                    
+                    <button class="btn primary" onclick="renderMenu()">Zurück zum Menü</button>
+                </div>
+            `;
+        }
+
+        // Initialize App
+        renderMenu();
+
+    </script>
+</body>
+</html>
